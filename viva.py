@@ -38,8 +38,8 @@ same frequency.
 For this reason, it is common that you'll receive samples for different types
 spread across a long timespan. For example, the latest gust speed may be
 recorded at time X while the average wind speed is recorded time Y.
-While the difference between X and Y is often only a few seconds, they sometimes
-differ several minutes, sometimes even hours.
+While the difference between X and Y is often only a few seconds, they
+sometimes differ several minutes, sometimes even hours.
 
 This is annoying because you can never really tell what the exact conditions
 were at time X or Y, you only know bits and pieces.
@@ -47,9 +47,7 @@ were at time X or Y, you only know bits and pieces.
 
 import urllib2
 import pytz
-from calendar import timegm
 from datetime import datetime
-from datetime import timedelta
 from lxml import etree
 import logging
 
@@ -128,6 +126,7 @@ SAMPLE_LUT = {
 }
 
 class Sample:
+
     def __init__(self, station_id, station_name, stype, svalue, ststamp):
         self.station_id = station_id
         self.station_name = station_name
@@ -158,7 +157,7 @@ def fetch_station_list():
     ''' Retrieves the global station list/index from ViVa SOAP service '''
 
     req_headers = {
-        "User-Agent" : USER_AGENT,
+        "User-Agent": USER_AGENT,
         "soapaction": '"http://www.sjofartsverket.se/webservice/VaderService/ViVaData.wsdl/GetViVaPoints"',
         "Content-Type": "text/xml; charset=utf-8"
     }
@@ -184,7 +183,7 @@ def fetch_station_list():
 
     return stations
 
-def fetch_station_history(station_id, time_from, time_until, hist_type = 0):
+def fetch_station_history(station_id, time_from, time_until, hist_type=0):
     '''
     Fetch station sample history
 
@@ -207,7 +206,7 @@ def fetch_station_history(station_id, time_from, time_until, hist_type = 0):
     '''
 
     req_headers = {
-        "User-Agent" : USER_AGENT,
+        "User-Agent": USER_AGENT,
         "soapaction": '"http://www.sjofartsverket.se/webservice/VaderService/ViVaData.wsdl/GetViVaDataTH"',
         "Content-Type": "text/xml; charset=utf-8"
     }
@@ -247,7 +246,7 @@ def fetch_station_latest(station_id):
     ''' Fetch the latest recorded samples from ViVa for the given station id '''
 
     req_headers = {
-        "User-Agent" : USER_AGENT,
+        "User-Agent": USER_AGENT,
         "soapaction": '"http://www.sjofartsverket.se/webservice/VaderService/ViVaData.wsdl/GetViVaDataT"',
         "Content-Type": "text/xml; charset=utf-8"
     }

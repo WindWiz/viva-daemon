@@ -50,8 +50,6 @@ from calendar import timegm
 from datetime import datetime
 from datetime import timedelta
 
-global callback
-
 def usage(*args):
     sys.stdout = sys.stderr
     print __doc__
@@ -107,7 +105,7 @@ def store_single_sample(db, sample):
     cursor.close()
     return success
 
-def store_samples(db, callback, samples):
+def store_samples(db, samples):
     ''' Stores given samples in the SQLite database '''
 
     for sample in samples:
@@ -117,6 +115,9 @@ def store_samples(db, callback, samples):
 
     db.commit()
 
+    return True
+
+def run_callback(callback, instance):
     if callback is not None:
         args = [callback]
         if instance is not None:
@@ -127,8 +128,6 @@ def store_samples(db, callback, samples):
                 print("Callback '%s' failed (%d)" % (callback, retcode))
         except Exception as x:
             print("Callback '%s' failed: %s" % (callback, x))
-
-    return True
 
 def print_station_list(stations):
     ''' Prints the given station list (as returned by fetch_station_list()) '''
@@ -152,7 +151,7 @@ if __name__ == "__main__":
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'vf:la:r:i:p:c:st:')
     except getopt.error as msg:
-        print(msg)
+        usage(msg)
         sys.exit(1)
 
     for o, a in opts:
@@ -215,7 +214,9 @@ if __name__ == "__main__":
             for station_id in stations:
                 samples = viva.fetch_station_history(station_id, t_from,
                                                      t_until)
-                store_samples(db, callback, samples)
+                if samples:
+                    if store_samples(db, samples):
+                        run_callback(callback, samples[0].station_name)
         else:
             log.info('Monitoring stations %s' % str(stations))
 
@@ -232,7 +233,8 @@ if __name__ == "__main__":
                     for station_id in stations:
                         samples = viva.fetch_station_latest(station_id)
                         if samples:
-                            store_samples(db, callback, samples)
+                            if store_samples(db, samples):
+                                run_callback(callback, samples[0].station_name)
                     t1 = time.time()
 
                     time_elapsed = t1 - t0
