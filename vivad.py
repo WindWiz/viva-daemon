@@ -34,7 +34,7 @@ Examples:
     vivad.py -v -s -t 2D 33,34
     Sync samples from the past 2 days for station 33 & 34 (verbose output).
 
-    vivad.py -v 33,34 -p 120
+    vivad.py -p 120 -v 33,34
     Poll latest samples from stations 33 & 34 every 120 seconds (verbose output).
 """
 
