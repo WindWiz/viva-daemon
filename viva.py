@@ -141,6 +141,16 @@ class Sample:
                                              self.svalue,
                                              self.ststamp)
 
+def get_viva_xml(data, headers):
+    request = urllib2.Request(VIVA_URL, data=data, headers=headers)
+    stream = urllib2.urlopen(request)
+
+    xml = etree.parse(stream)
+    log = logging.getLogger('vivad.viva')
+    log.debug(etree.tostring(xml, pretty_print=True))
+
+    return xml
+
 def create_sample(station_id, station_name, sunit, stype, svalue, ststamp):
     log = logging.getLogger('vivad.viva')
 
@@ -163,13 +173,7 @@ def fetch_station_list():
     }
 
     data = VIVA_LIST_REQUEST
-    log = logging.getLogger('vivad.viva')
-
-    request = urllib2.Request(VIVA_URL, data=data, headers=req_headers)
-    stream = urllib2.urlopen(request)
-
-    tree = etree.parse(stream)
-    log.debug(etree.tostring(tree, pretty_print=True))
+    tree = get_viva_xml(data, req_headers)
 
     stations = []
     station_elements = tree.xpath(XPATH_STATION_LIST, namespaces=NS)
@@ -212,17 +216,13 @@ def fetch_station_history(station_id, time_from, time_until, hist_type=0):
     }
 
     data = VIVA_HISTORY_REQUEST
-    log = logging.getLogger('vivad.viva')
 
     str_from = datetime.strftime(time_from, VIVA_DATEFORMAT)
     str_until = datetime.strftime(time_until, VIVA_DATEFORMAT)
 
     data = data % (station_id, hist_type, str_from, str_until)
 
-    request = urllib2.Request(VIVA_URL, data=data, headers=req_headers)
-    stream = urllib2.urlopen(request)
-    tree = etree.parse(stream)
-    log.debug(etree.tostring(tree, pretty_print=True))
+    tree = get_viva_xml(data, req_headers)
 
     elements = tree.xpath(XPATH_SAMPLE_HISTORY, namespaces=NS)
     samples = []
@@ -239,6 +239,7 @@ def fetch_station_history(station_id, time_from, time_until, hist_type=0):
         if sample:
             samples.append(sample)
 
+    log = logging.getLogger('vivad.viva')
     log.info('Found %d samples of type %d for station %d between %s -> %s' % (len(samples), hist_type, station_id, str_from, str_until))
     return samples
 
@@ -255,10 +256,7 @@ def fetch_station_latest(station_id):
     data = data % station_id
     log = logging.getLogger('vivad.viva')
 
-    request = urllib2.Request(VIVA_URL, data=data, headers=req_headers)
-    stream = urllib2.urlopen(request)
-    tree = etree.parse(stream)
-    log.debug(etree.tostring(tree, pretty_print=True))
+    tree = get_viva_xml(data, req_headers)
 
     # Look for errors in the XML response
     err_element = tree.xpath(XPATH_LATEST_ERRORMSG, namespaces=NS)

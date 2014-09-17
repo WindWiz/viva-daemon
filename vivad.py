@@ -129,6 +129,48 @@ def run_callback(callback, instance):
         except Exception as x:
             print("Callback '%s' failed: %s" % (callback, x))
 
+def sync_station_history(db, callback, stations, t_from, t_until):
+    ''' Syncs given station(s) between t_from to t_until into db, and runs
+    appropriate callback. '''
+
+    log = logging.getLogger('vivad')
+    failcount = 0
+
+    for station_id in stations:
+        try:
+            samples = viva.fetch_station_history(station_id, t_from,
+                                                 t_until)
+            if samples:
+                if store_samples(db, samples):
+                    run_callback(callback, samples[0].station_name)
+        except:
+            log.info('Failed to fetch history for %s, ignoring...' % station_id)
+            failcount += 1
+
+    all_failed = (failcount == len(stations))
+    return not all_failed
+
+def sync_station_latest(db, callback, stations):
+    ''' Syncs latest sample(s) for given stations(s) into db and runs appropriate
+    callbacks. '''
+
+    log = logging.getLogger('vivad')
+    failcount = 0
+
+    for station_id in stations:
+        try:
+            samples = viva.fetch_station_latest(station_id)
+            if samples:
+                if store_samples(db, samples):
+                    run_callback(callback, samples[0].station_name)
+        except:
+            log.info('Failed to fetch latest sample for %s, ignoring...' % station_id)
+            failcount += 1
+
+    all_failed = (failcount == len(stations))
+    return not all_failed
+
+
 def print_station_list(stations):
     ''' Prints the given station list (as returned by fetch_station_list()) '''
     row_fmt = "%-6s %-10s %-10s %-50s"
@@ -211,12 +253,9 @@ if __name__ == "__main__":
             t_until = datetime.today()
             t_from = t_until - timespan
 
-            for station_id in stations:
-                samples = viva.fetch_station_history(station_id, t_from,
-                                                     t_until)
-                if samples:
-                    if store_samples(db, samples):
-                        run_callback(callback, samples[0].station_name)
+            if not sync_station_history(db, callback, stations, t_from, t_until):
+                print('Syncing failed for all stations, something is wrong!')
+                sys.exit(2)
         else:
             log.info('Monitoring stations %s' % str(stations))
 
@@ -230,11 +269,10 @@ if __name__ == "__main__":
             try:
                 while True:
                     t0 = time.time()
-                    for station_id in stations:
-                        samples = viva.fetch_station_latest(station_id)
-                        if samples:
-                            if store_samples(db, samples):
-                                run_callback(callback, samples[0].station_name)
+                    if not sync_station_latest(db, callback, stations):
+                        print('Syncing failed for all stations, something is wrong!')
+                        os.unlink(pidfile)
+                        sys.exit(3)
                     t1 = time.time()
 
                     time_elapsed = t1 - t0
